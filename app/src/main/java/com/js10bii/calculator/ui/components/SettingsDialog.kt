@@ -34,7 +34,7 @@ fun SettingsDialog(
             modifier = Modifier
                 .fillMaxWidth()
                 .clip(RoundedCornerShape(12.dp))
-                .background(Color(0xFF272727))
+                .background(Panel)
                 .border(1.dp, Color(0xFF404040), RoundedCornerShape(12.dp)),
         ) {
             Column(
@@ -52,11 +52,9 @@ fun SettingsDialog(
 
                 // Display
                 SectionHeader("Display")
-                SettingRow("Decimal places") {
-                    Row(horizontalArrangement = Arrangement.spacedBy(3.dp)) {
-                        for (i in 0..9) {
-                            SettingChip("$i", state.displayDecimalPlaces == i) { onDecimalPlaces(i) }
-                        }
+                WideSetting("Decimal places") {
+                    for (i in 0..9) {
+                        SettingChip("$i", state.displayDecimalPlaces == i, Modifier.weight(1f)) { onDecimalPlaces(i) }
                     }
                 }
 
@@ -81,11 +79,9 @@ fun SettingsDialog(
 
                 // TVM
                 SectionHeader("TVM")
-                SettingRow("Payments / yr") {
-                    Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
-                        listOf(1.0, 2.0, 4.0, 12.0, 52.0, 365.0).forEach { pyr ->
-                            SettingChip(pyr.toInt().toString(), state.tvmPYR == pyr) { onPyr(pyr) }
-                        }
+                WideSetting("Payments / yr") {
+                    listOf(1.0, 2.0, 4.0, 12.0, 52.0, 365.0).forEach { pyr ->
+                        SettingChip(pyr.toInt().toString(), state.tvmPYR == pyr, Modifier.weight(1f)) { onPyr(pyr) }
                     }
                 }
                 SettingRow("Payment timing") {
@@ -128,6 +124,15 @@ private fun SettingRow(label: String, content: @Composable () -> Unit) {
     }
 }
 
+/** For settings with many choices: the label goes above, so the chips share the full width. */
+@Composable
+private fun WideSetting(label: String, chips: @Composable RowScope.() -> Unit) {
+    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        Text(label, color = Color(0xFFAAAAAA), fontSize = 13.sp)
+        Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(3.dp), content = chips)
+    }
+}
+
 @Composable
 private fun SettingsDivider() {
     Box(
@@ -139,9 +144,9 @@ private fun SettingsDivider() {
 }
 
 @Composable
-private fun SettingChip(label: String, selected: Boolean, onClick: () -> Unit) {
+private fun SettingChip(label: String, selected: Boolean, modifier: Modifier = Modifier, onClick: () -> Unit) {
     Box(
-        modifier = Modifier
+        modifier = modifier
             .clip(RoundedCornerShape(4.dp))
             .background(if (selected) BlueLabel else Color(0xFF363636))
             .border(
@@ -150,9 +155,9 @@ private fun SettingChip(label: String, selected: Boolean, onClick: () -> Unit) {
                 RoundedCornerShape(4.dp),
             )
             .clickable(onClick = onClick)
-            .padding(horizontal = 7.dp, vertical = 5.dp),
+            .padding(horizontal = 7.dp, vertical = 7.dp),
         contentAlignment = Alignment.Center,
     ) {
-        Text(label, color = PrimaryLabel, fontSize = 12.sp)
+        Text(label, color = if (selected) CalcBody else PrimaryLabel, fontSize = 12.sp, maxLines = 1, softWrap = false)
     }
 }

@@ -5,11 +5,13 @@ import androidx.compose.material3.darkColorScheme
 import androidx.compose.runtime.Composable
 
 private val DarkColorScheme = darkColorScheme(
-    primary = OrangeLabel,
+    primary = Accent,
     secondary = BlueLabel,
     background = CalcBody,
-    surface = KeyFace,
-    onPrimary = PrimaryLabel,
+    surface = Panel,
+    error = ErrorText,
+    onPrimary = CalcBody,
+    onSecondary = CalcBody,
     onSurface = PrimaryLabel,
     onBackground = PrimaryLabel,
 )

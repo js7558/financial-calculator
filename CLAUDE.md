@@ -32,7 +32,7 @@ Adding a key function means touching `KeyAction`, `KEY_ROWS` and the `when` in `
 
 `CalculatorKeypad` renders `KEY_ROWS` by hard-coded index and draws the shift keys itself, so row 4 of `KEY_ROWS` is not rendered.
 
-The strip under the keypad is `ui/StatusLines.kt` (plain text, tested in `ui/StatusLinesTest`): full cents, and always P/YR and the modes, which C ALL keeps.
+`ui/StatusLines.kt` (plain text, tested in `ui/StatusLinesTest`) is the text of the TVM values above the keypad (`TvmRow`, whose columns must match the first key row) and of the mode pills and value line below it: full cents, and always P/YR and the modes, which C ALL keeps.
 
 `CalculatorEngine` imports `AngleMode` from the `viewmodel` package, so `engine` is not fully independent of it.
 

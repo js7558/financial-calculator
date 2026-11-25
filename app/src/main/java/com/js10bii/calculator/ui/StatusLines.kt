@@ -11,18 +11,23 @@ import java.text.DecimalFormatSymbols
 import java.util.Locale
 import kotlin.math.abs
 
-/** Text of the strip under the keypad. People copy figures from it, so amounts always show full cents. */
+/** Text of the TVM row and the strip under the keypad. People copy figures from them, so amounts always show full cents. */
 internal object StatusLines {
 
-    /** Settings that change answers, always shown because C ALL keeps them, then N and I/YR. */
-    fun modes(s: CalculatorState): String = listOfNotNull(
-        "P/YR=${number(s.tvmPYR)}",
-        if (s.paymentTiming == PaymentTiming.BEGIN) "BEGIN" else "END",
-        if (s.calcMode == CalcMode.CHAIN) "CHAIN" else "ALG",
-        if (s.angleMode == AngleMode.DEG) "DEG" else "RAD",
-        s.tvmN?.let { "N=${number(it)}" },
-        s.tvmIYR?.let { "I/YR=${number(it)}" },
-    ).joinToString("  ")
+    /** Settings that change answers, always shown because C ALL keeps them. */
+    fun pyr(s: CalculatorState): String = "P/YR=${number(s.tvmPYR)}"
+    fun timing(s: CalculatorState): String = if (s.paymentTiming == PaymentTiming.BEGIN) "BEGIN" else "END"
+    fun calcMode(s: CalculatorState): String = if (s.calcMode == CalcMode.CHAIN) "CHAIN" else "ALG"
+    fun angle(s: CalculatorState): String = if (s.angleMode == AngleMode.DEG) "DEG" else "RAD"
+
+    /** Name and value of N, I/YR, PV, PMT and FV, in the order of their keys; null when not set. */
+    fun registers(s: CalculatorState): List<Pair<String, String?>> = listOf(
+        "N" to s.tvmN?.let(::number),
+        "I/YR" to s.tvmIYR?.let(::number),
+        "PV" to s.tvmPV?.let(::money),
+        "PMT" to s.tvmPMT?.let(::money),
+        "FV" to s.tvmFV?.let(::money),
+    )
 
     fun values(s: CalculatorState): String {
         if (s.outer.isNotEmpty()) return expression(s)
@@ -46,10 +51,13 @@ internal object StatusLines {
         ).joinToString("  ")
     }
 
-    private fun expression(s: CalculatorState): String = buildString {
+    /** The waiting operations, without the number being typed: the display shows that one itself. */
+    fun pending(s: CalculatorState): String = expression(s, withTyped = false)
+
+    private fun expression(s: CalculatorState, withTyped: Boolean = true): String = buildString {
         s.outer.forEach { append(it.op?.let { op -> "${number(it.operand)} ${symbol(op)} " } ?: "( ") }
         s.pendingOperator?.let { append("${number(s.operandA)} ${symbol(it)} ") }
-        if (s.isEditing) append(s.displayText)
+        if (withTyped && s.isEditing) append(s.displayText)
     }.trimEnd()
 
     private fun money(v: Double) = format(v, "#,##0.00", 2)

@@ -6,19 +6,19 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.remember
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalDensity
-import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.rememberTextMeasurer
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.js10bii.calculator.ui.StatusLines
 import com.js10bii.calculator.ui.theme.*
 import com.js10bii.calculator.viewmodel.AmortPhase
 import com.js10bii.calculator.viewmodel.CalculatorState
@@ -28,80 +28,85 @@ fun CalculatorDisplay(
     state: CalculatorState,
     modifier: Modifier = Modifier,
 ) {
-    val displayShape = RoundedCornerShape(4.dp)
-
-    Box(
+    val frame = RoundedCornerShape(14.dp)
+    Column(
         modifier = modifier
-            .fillMaxWidth()
-            .clip(displayShape)
-            .background(DisplayBg)
-            .border(2.dp, DisplayBorder, displayShape)
-            .padding(horizontal = 10.dp, vertical = 6.dp),
+            .background(Panel, frame)
+            .border(1.dp, DisplayFrame, frame)
+            .padding(start = 14.dp, end = 14.dp, top = 8.dp, bottom = 2.dp),
     ) {
-        Column(modifier = Modifier.fillMaxSize()) {
-            // Annunciator row — pinned to the top
+        // Annunciators; the height is fixed so the number does not move,
+        // and the system font size cannot push one off the screen.
+        val density = LocalDensity.current
+        CompositionLocalProvider(LocalDensity provides Density(density.density, density.fontScale.coerceAtMost(1f))) {
             Row(
-                modifier = Modifier.fillMaxWidth(),
+                modifier = Modifier.fillMaxWidth().height(22.dp),
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically,
             ) {
-                Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                    Annunciator(text = "▲", visible = state.showShiftUp, color = BlueLabel)
-                    Annunciator(text = "▼", visible = state.showShiftDown, color = OrangeLabel)
-                    Annunciator(text = "BEGIN", visible = state.showBegin)
-                    Annunciator(text = "INPUT", visible = state.showInput)
-                    Annunciator(text = "PRIN",  visible = state.amortPhase == AmortPhase.PRIN)
-                    Annunciator(text = "INT",   visible = state.amortPhase == AmortPhase.INT)
-                    Annunciator(text = "BAL",   visible = state.amortPhase == AmortPhase.BAL)
+                Row(horizontalArrangement = Arrangement.spacedBy(5.dp)) {
+                    Annunciator("▲", state.showShiftUp, BlueLabel)
+                    Annunciator("▼", state.showShiftDown, OrangeLabel)
+                    Annunciator("BEGIN", state.showBegin)
+                    Annunciator("INPUT", state.showInput)
+                    Annunciator("PRIN", state.amortPhase == AmortPhase.PRIN)
+                    Annunciator("INT", state.amortPhase == AmortPhase.INT)
+                    Annunciator("BAL", state.amortPhase == AmortPhase.BAL)
                 }
-                Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                    Annunciator(text = "RAD",  visible = state.showRad)
-                    Annunciator(text = "SEMI", visible = state.bondSemi)
-                    Annunciator(text = "D.MY", visible = state.dateDMY)
-                    Annunciator(text = "360",  visible = !state.dateActual)
+                Row(horizontalArrangement = Arrangement.spacedBy(5.dp)) {
+                    Annunciator("RAD", state.showRad)
+                    Annunciator("SEMI", state.bondSemi)
+                    Annunciator("D.MY", state.dateDMY)
+                    Annunciator("360", !state.dateActual)
                 }
             }
+        }
 
-            // Main numeric display — vertically centered in remaining space
-            BoxWithConstraints(
-                modifier = Modifier.fillMaxWidth().weight(1f),
-                contentAlignment = Alignment.Center,
-            ) {
-                Text(
-                    text = state.displayText,
-                    color = if (state.isError) Color(0xFFCC2200) else if (state.isOff) DisplayText.copy(alpha = 0.4f) else DisplayText,
-                    style = fittedStyle(state.displayText, constraints.maxWidth),
-                    textAlign = TextAlign.End,
-                    maxLines = 1,
-                    softWrap = false,
-                    modifier = Modifier.fillMaxWidth(),
-                )
-            }
+        // What the next number will be combined with
+        Text(
+            text = if (state.isOff) "" else StatusLines.pending(state),
+            color = SecondaryLabel,
+            style = NumberStyle.copy(fontSize = 16.sp, fontWeight = FontWeight.Normal),
+            textAlign = TextAlign.End,
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis,
+            modifier = Modifier.fillMaxWidth(),
+        )
+
+        BoxWithConstraints(
+            modifier = Modifier.fillMaxWidth().weight(1f),
+            contentAlignment = Alignment.CenterEnd,
+        ) {
+            Text(
+                text = state.displayText,
+                color = when {
+                    state.isError -> ErrorText
+                    state.isOff -> PrimaryLabel.copy(alpha = 0.4f)
+                    else -> PrimaryLabel
+                },
+                style = fittedStyle(state.displayText, NumberStyle, constraints.maxWidth, constraints.maxHeight),
+                textAlign = TextAlign.End,
+                maxLines = 1,
+                softWrap = false,
+                modifier = Modifier.fillMaxWidth(),
+            )
         }
     }
 }
 
-/** Shrinks the text until all of it fits: a number with digits cut off is a wrong number. */
 @Composable
-private fun fittedStyle(text: String, maxWidth: Int): TextStyle {
-    val measurer = rememberTextMeasurer()
-    val density = LocalDensity.current
-    return remember(text, maxWidth, density) {
-        val full = TextStyle(fontSize = 42.sp, fontFamily = FontFamily.Monospace, fontWeight = FontWeight.Medium)
-        val width = measurer.measure(text, full, maxLines = 1, softWrap = false).size.width
-        if (width <= maxWidth) full
-        else full.copy(fontSize = with(density) { (full.fontSize.toPx() * maxWidth / width * 0.98f).toSp() })
-    }
-}
-
-@Composable
-private fun Annunciator(text: String, visible: Boolean, color: Color = DisplayText) {
+private fun Annunciator(text: String, visible: Boolean, color: Color = Accent) {
+    if (!visible) return
     Text(
-        text = if (visible) text else "",
+        text = text,
         color = color,
-        fontSize = 8.sp,
+        fontSize = 11.sp,
+        lineHeight = 14.sp,
         fontFamily = FontFamily.SansSerif,
-        fontWeight = FontWeight.Bold,
-        modifier = Modifier.widthIn(min = if (text.length > 3) 32.dp else 20.dp),
+        fontWeight = FontWeight.SemiBold,
+        maxLines = 1,
+        modifier = Modifier
+            .background(color.copy(alpha = 0.14f), RoundedCornerShape(50))
+            .padding(horizontal = 7.dp, vertical = 2.dp),
     )
 }
