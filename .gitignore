@@ -1,0 +1,21 @@
+# Build output
+build/
+.gradle/
+.kotlin/
+*.apk
+*.aab
+
+# This computer only
+local.properties
+.idea/
+*.iml
+.claude/settings.local.json
+.DS_Store
+
+# Signing
+*.jks
+*.keystore
+keystore.properties
+
+# Python
+__pycache__/
